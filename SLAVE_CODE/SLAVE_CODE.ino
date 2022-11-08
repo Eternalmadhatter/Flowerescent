@@ -16,7 +16,9 @@ int PressurePin2=A2;
 int force0;
 int force1;
 int force2;
-unsigned long time;
+
+const unsigned long eventTime = 60000;
+unsigned long prevTime = 0;
 
 bool playstart = false;
 
@@ -57,9 +59,10 @@ void setup() {
 
 void loop() {
 
-  time = millis();
-  Serial.println(time);
-  if(time > 60000 || !playstart )
+  unsigned long currentTime = millis();
+ 
+  Serial.println(currentTime);
+  if(currentTime - prevTime >= eventTime || !playstart )
   { 
     playstart = true;
     Serial.println("Play sound 1");
@@ -71,6 +74,7 @@ void loop() {
     myMP3.write((byte)0x00);//forces the value to be read as a byte, otherwise error occurs
     myMP3.write(0x02);//will be the first file on the card
     myMP3.write(0xEF); //end byte
+    prevTime = currentTime;
   }
     
   
