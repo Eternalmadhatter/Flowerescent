@@ -18,9 +18,9 @@ FASTLED_USING_NAMESPACE
 //#define CLK_PIN   4
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
-#define NUM_LEDS    19
+#define NUM_LEDS    39
 CRGB leds[NUM_LEDS];
-CRGB randomColor[20];
+int randomColor[20];
 #define BRIGHTNESS         255
 #define FRAMES_PER_SECOND  120
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
@@ -66,12 +66,8 @@ void setup() {
   delay(500);
 }
 
-/*// List of patterns to cycle through.  Each is defined as a separate function below.
-typedef void (*SimplePatternList[])();
-   SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
-
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
-uint8_t gHue = 0; // rotating "base color" used by many of the patterns*/
+uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
 void loop() {
 
@@ -79,22 +75,12 @@ void loop() {
   //totaldist=0;
 
   force0=analogRead(PressurePin0);                    //pressure sensor 1
-  Serial.println(force0);
+  //Serial.println(force0);
   force1=analogRead(PressurePin1);                    //pressure sensor 2
-  Serial.println(force1);
+  //Serial.println(force1);
   force2=analogRead(PressurePin2);                    //pressure sensor 3
-  Serial.println(force2);
-  /*for( int r=0; r<5; r++)
-  {
-     sendPing();
-     int duration = pulseIn(echoPin, HIGH);
-     distance = 0.034 * duration / 2;
-     distance = clamp(distance, 0, 200);
-     totaldist = totaldist+distance;
-     
-  }
-   avgDist = totaldist/5;
-   printToScreen(avgDist);*/
+  //Serial.println(force2);
+
   if(force0<499 && force1<499 && force2<499)//if no one step 
   {
    
@@ -102,7 +88,12 @@ void loop() {
      {
         trig[i] = 0; 
      }
-     randomColors();
+     sinelon();
+     FastLED.delay(1000/FRAMES_PER_SECOND); 
+
+  // do some periodic updates
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
+  
    
   }
   else
@@ -110,19 +101,22 @@ void loop() {
     if(force0>500)//If person step on rock 1
     {     
       trig[0]=1;
+      
     }
     else
     {
       trig[0]=0;
     }
+    //Serial.println( trig[0]);
     if(force1>500)//If person step on rock 2
     {        
-      trig[0]=1;
+      trig[1]=1;
     }
     else
     {
       trig[1]=0;
     }
+    //Serial.println( trig[1]);
     if(force2>500)//if person step on rock 3
     {       
       trig[2]=1;  
@@ -131,29 +125,35 @@ void loop() {
     {
       trig[2]=0;
     }
+      //Serial.println( trig[2]);
+
+      for( int i = 0 ; i<3 ; i++)//saves current input into prev input 
+    {
+       //Serial.print( trig[i]);
+    }
   }
   
   if(trig[0] == trigPrv[0] && trig[1] == trigPrv[1] && trig[2] == trigPrv[2])//compair to previous input 
   {
+    //Serial.println( "no change");
     for( int i = 0 ; i<3 ; i++)//saves current input into prev input 
     {
       trigPrv[i] = trig[i];
+      //Serial.println(trigPrv[i]);
     }
-
+      
   }
   else
   {
-    for( int i = 0 ; i<3 ; i++)//saves current input into prev input 
-    {
-      trigPrv[i] = trig[i];
-    }
-
+    
+    
     if(trig[2] == 1)//priority to last stone
     {
         Wire.beginTransmission(9); // transmit to device #9
         Wire.write(trig[2]);              // sends 0  
         Wire.endTransmission(); 
         OrRedFlowers();
+        Serial.println( "red play");
     }
     else if(trig[1] == 1)
     {
@@ -161,6 +161,7 @@ void loop() {
         Wire.write(trig[1]);              // sends 0  
         Wire.endTransmission(); 
         YellowFlowers();
+         Serial.println( "yellow play ");
     }
     else if(trig[0] == 1)
     {
@@ -168,34 +169,31 @@ void loop() {
         Wire.write(trig[0]);              // sends 0  
         Wire.endTransmission(); 
         BuPuFlowers();
+         Serial.println( "blue play");
+    }
+    for( int i = 0 ; i<3 ; i++)//saves current input into prev input 
+    {
+      trigPrv[i] = trig[i];
+      Serial.println(trigPrv[i]);
     }
     
+
   }
-  /*Wire.beginTransmission(9); // transmit to device #9
-  Wire.write(trig[0]);              // sends 0  
-  Wire.write(trig[1]);              // sends 1  
-  Wire.write(trig[2]);              // sends 2  
-  Wire.endTransmission(); 
-  delay(500);  */
-
   
- 
-   
-  // insert a delay to keep the framerate modest
-  FastLED.delay(1000/FRAMES_PER_SECOND); 
-
- /* // do some periodic updates
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-  // EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically*/
 }
 
 void randomColors()
 {
+  Serial.println( "random play");
   
   for (int i = 0; i <= 20; i++)//generates a list of 20 random numbers 
   {
     randNumber = random(0,40);
+    
     randomColor[i] = randNumber;
+    Serial.print(i);
+    Serial.println(randNumber);
+    Serial.println(randomColor[i]);
   }
 
   for (int j = 0; j <= 20; j++)//marks the leds of those numbers as on 
@@ -203,29 +201,33 @@ void randomColors()
     if (j >= 0 && j < 6)
     {
       leds[randomColor[j]] = CRGB(222,10 ,10); //Rossa
-      FastLED.show();
+      
     } 
     else if (j >= 6 && j < 12)
     {
       leds[randomColor[j]] = CRGB(243, 91, 4); //Tangerine
-      FastLED.show();
+      
     }
     else if (j >= 12 && j < 20)
     {
       leds[randomColor[j]] = CRGB(10, 10, 255); // Blue
-      FastLED.show();
+     
     }
   }
-  delay(300);
+   FastLED.show();
+  delay(100);
   FastLED.clear();//clear all leds
   FastLED.show();
 }
 
 void BuPuFlowers()
 {
+  Serial.println( "blue is play");
   FastLED.clear();//clear all leds
   FastLED.show();
-  
+
+
+      leds[0] = CRGB(50, 10, 200); //purple;
       leds[9] = CRGB(10, 10, 255); //blu
       leds[10] = CRGB(50, 10, 200); //purple;
       leds[11] = CRGB(10, 10, 255); //blu
@@ -239,7 +241,7 @@ void BuPuFlowers()
       leds[27] = CRGB(10, 10, 255); //blu
       leds[28] = CRGB(50, 10, 200); //purple;
       FastLED.show();//wave step 1
-      delay(100);
+      delay(200);
       
       leds[1] = CRGB(10, 10, 255); //blu
       leds[2] = CRGB(50, 10, 200); //purple;
@@ -254,7 +256,7 @@ void BuPuFlowers()
       leds[31] = CRGB(10, 10, 255); //blu
       leds[38] = CRGB(50, 10, 200); //purple;
       FastLED.show();//wave step 2
-      delay(100);
+      delay(200);
       
       leds[12] = CRGB(10, 10, 255); //blu
       leds[13] = CRGB(50, 10, 200); //purple;
@@ -271,19 +273,25 @@ void BuPuFlowers()
       leds[37] = CRGB(10, 10, 255); //blu
       leds[39] = CRGB(50, 10, 200); //purple;
       FastLED.show();//wave step 3
-      delay(100);
-      
+      delay(200);
+      leds[33] = CRGB(10, 10, 255); //blu
       leds[34] = CRGB(10, 10, 255); //blu
       leds[35] = CRGB(50, 10, 200); //purple;
       leds[36] = CRGB(10, 10, 255); //blu
       FastLED.show();//wave step 4
-      delay(100);
+      delay(200);
+
+      Serial.println( "blue stop");
 }
 
 void YellowFlowers()
 {
+
+  Serial.println( "yellow is play");
   FastLED.clear();//clear all leds
   FastLED.show();
+  delay(200);
+  leds[0] = CRGB(243, 91, 4); //tangerine
   leds[1] = CRGB(247, 184, 1); //selective yellow
   leds[2] = CRGB(243, 91, 4); //tangerine
   leds[3] = CRGB(247, 184, 1); //selective yellow
@@ -294,8 +302,10 @@ void YellowFlowers()
   leds[9] = CRGB(243, 91, 4); //tangerine
   leds[1] = CRGB(247, 184, 1); //selective yellow
   leds[2] = CRGB(243, 91, 4); //tangerine
+    leds[10] = CRGB(247, 184, 1); //selective yellow
+  leds[11] = CRGB(243, 91, 4); //tangerine
   FastLED.show();//wave step 1
-  delay(100);
+  delay(200);
   
   leds[8] = CRGB(247, 184, 1); //selective yellow
   leds[12] = CRGB(243, 91, 4); //tangerine
@@ -310,7 +320,7 @@ void YellowFlowers()
   leds[25] = CRGB(247, 184, 1); //selective yellow
   leds[26] = CRGB(243, 91, 4); //tangerine
   FastLED.show(); //wave step 2
-  delay(100);
+  delay(200);
   
   leds[19] = CRGB(247, 184, 1); //selective yellow
   leds[21] = CRGB(243, 91, 4); //tangerine
@@ -320,7 +330,7 @@ void YellowFlowers()
   leds[30] = CRGB(243, 91, 4); //tangerine
   leds[31] = CRGB(247, 184, 1); //selective yellow
   FastLED.show(); //wave step 3
-  delay(100);
+  delay(200);
   
   leds[28] = CRGB(243, 91, 4); //tangerine
   leds[32] = CRGB(247, 184, 1); //selective yellow
@@ -329,19 +339,20 @@ void YellowFlowers()
   leds[37] = CRGB(243, 91, 4); //tangerine
   leds[38] = CRGB(247, 184, 1); //selective yellow
   FastLED.show(); //wave step 4 
-  delay(100);
+  delay(200);
   
   leds[29] = CRGB(247, 184, 1); //selective yellow
   leds[39] = CRGB(243, 91, 4); //tangerine
   leds[36] = CRGB(247, 184, 1); //selective yellow
   leds[35] = CRGB(243, 91, 4); //tangerine  
   FastLED.show(); //wave step 5
-  delay(100);
-  
+  delay(200);
+ Serial.println( "yellow stop"); 
 }
 
 void OrRedFlowers()
 {
+  Serial.println( "red  is play");
   FastLED.clear();
   FastLED.show();
   leds[6] = CRGB(220, 47, 2); //persimmon
@@ -353,7 +364,7 @@ void OrRedFlowers()
   leds[22] = CRGB(220, 47, 2); //persimmon
   leds[23] = CRGB(222,10 ,10); //Rosso corsa
   FastLED.show();
-  delay(100);
+  delay(200);
 
   leds[6] = CRGB(220, 47, 2); //persimmon
   leds[10] = CRGB(222,10 ,10); //Rosso corsa
@@ -364,8 +375,9 @@ void OrRedFlowers()
   leds[33] = CRGB(220, 47, 2); //persimmon
   leds[34] = CRGB(222,10 ,10); //Rosso corsa  
   FastLED.show();
-  delay(100);
+  delay(200);
 
+  leds[0] = CRGB(222,10 ,10); //Rosso corsa
   leds[1] = CRGB(220, 47, 2); //persimmon
   leds[2] = CRGB(222,10 ,10); //Rosso corsa
   leds[3] = CRGB(220, 47, 2); //persimmon
@@ -376,7 +388,7 @@ void OrRedFlowers()
   leds[31] = CRGB(222,10 ,10); //Rosso corsa  
   leds[32] = CRGB(220, 47, 2); //persimmon
   FastLED.show();
-  delay(100);
+  delay(200);
   leds[11] = CRGB(222,10 ,10); //Rosso corsa  
   leds[12] = CRGB(220, 47, 2); //persimmon
   leds[13] = CRGB(222,10 ,10); //Rosso corsa
@@ -388,7 +400,7 @@ void OrRedFlowers()
   leds[36] = CRGB(222,10 ,10); //Rosso corsa  
   leds[37] = CRGB(220, 47, 2); //persimmon
   FastLED.show();
-  delay(100);
+  delay(200);
 
   leds[27] = CRGB(222,10 ,10); //Rosso corsa  
   leds[28] = CRGB(220, 47, 2); //persimmon
@@ -396,45 +408,19 @@ void OrRedFlowers()
   leds[38] = CRGB(220, 47, 2); //persimmon
   leds[39] = CRGB(222,10 ,10); //Rosso corsa
   FastLED.show();
-  delay(100);
-}
+  delay(200);
 
-
-
-/*void nextPattern()
-{
-  // add one to the current pattern number, and wrap around at the end
-   gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE( gPatterns);
+  Serial.println( "red stop");
 }
 
 void rainbow() 
 {
   // FastLED's built-in rainbow generator
   fill_rainbow( leds, NUM_LEDS, gHue, 7);
+   FastLED.show();  
+    delay(200);
 }
 
-void rainbowWithGlitter() 
-{
-  // built-in FastLED rainbow, plus some random sparkly glitter
-  rainbow();
-  addGlitter(80);
-}
-
-void addGlitter( fract8 chanceOfGlitter) 
-{
-  if( random8() < chanceOfGlitter) 
-  {
-    leds[ random16(NUM_LEDS) ] += CRGB::White;
-  }
-}
-
-void confetti() 
-{
-  // random colored speckles that blink in and fade smoothly
-  fadeToBlackBy( leds, NUM_LEDS, 10);
-  int pos = random16(NUM_LEDS);
-  leds[pos] += CHSV( gHue + random8(64), 200, 255);
-}
 
 void sinelon()
 {
@@ -443,58 +429,3 @@ void sinelon()
   int pos = beatsin16( 13, 0, NUM_LEDS-1 );
   leds[pos] += CHSV( gHue, 255, 192);
 }
-
-void bpm()
-{
-  // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-  uint8_t BeatsPerMinute = 62;
-  CRGBPalette16 palette = PartyColors_p;
-  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-  for( int i = 0; i < NUM_LEDS; i++) 
-  { //9948
-    leds[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
-  }
-}
-
-void juggle() {
-  // eight colored dots, weaving in and out of sync with each other
-  fadeToBlackBy( leds, NUM_LEDS, 20);
-  uint8_t dothue = 0;
-  for( int i = 0; i < 8; i++) 
-  {
-    leds[beatsin16( i+7, 0, NUM_LEDS-1 )] |= CHSV(dothue, 200, 255);
-    dothue += 32;
-  }
-}*/
-
-/*void sendPing()
-{
-   digitalWrite(trigPin, LOW);
-   delayMicroseconds(5);
-   digitalWrite(trigPin, HIGH);
-   delayMicroseconds(10);
-   digitalWrite(trigPin, LOW);
-}
-int clamp(int VAL, int min, int max)
-{
-  if(VAL <= min)
-  {
-    VAL = min;
-    return VAL;
-  }
-  else if(VAL >= max)
-  {
-    VAL = max;
-    return VAL;
-  }
-  else
-  {
-    return VAL;
-  }
-}
-
-void printToScreen(int TARGET)
-{
-    Serial.print(TARGET);
-    Serial.println(" cm");
-}*/
