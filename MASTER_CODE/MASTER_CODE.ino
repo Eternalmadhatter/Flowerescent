@@ -147,30 +147,46 @@ void loop() {
   {
     
     
-    if(trig[2] == 1)//priority to last stone
+    if(trig[0] == 0 && trig[1] == 0 && trig[2] == 1)//priority to last stone
     {
         Wire.beginTransmission(9); // transmit to device #9
-        Wire.write(trig[2]);              // sends 0  
+        Wire.write(0);    
+        Wire.write(0); 
+        Wire.write(trig[2]);  
         Wire.endTransmission(); 
         OrRedFlowers();
         Serial.println( "red play");
     }
-    else if(trig[1] == 1)
+    else if(trig[0] == 0 && trig[1] == 1 && trig[2] == 0)
     {
         Wire.beginTransmission(9); // transmit to device #9
-        Wire.write(trig[1]);              // sends 0  
+        Wire.write(0);    
+        Wire.write(trig[1]); 
+        Wire.write(0); 
         Wire.endTransmission(); 
         YellowFlowers();
          Serial.println( "yellow play ");
     }
-    else if(trig[0] == 1)
+    else if(trig[0] == 1 && trig[1] == 0 && trig[2] == 0)
     {
         Wire.beginTransmission(9); // transmit to device #9
-        Wire.write(trig[0]);              // sends 0  
+        Wire.write(trig[0]);    
+        Wire.write(0); 
+        Wire.write(0); 
         Wire.endTransmission(); 
         BuPuFlowers();
          Serial.println( "blue play");
     }
+    else if(trig[0] == 0 && trig[1] == 0 && trig[2] == 0)
+    {
+        Wire.beginTransmission(9); // transmit to device #9
+        Wire.write(0);    
+        Wire.write(0); 
+        Wire.write(0); 
+        Wire.endTransmission(); 
+        
+    }
+    
     for( int i = 0 ; i<3 ; i++)//saves current input into prev input 
     {
       trigPrv[i] = trig[i];

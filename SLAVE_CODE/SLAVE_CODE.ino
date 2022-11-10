@@ -2,7 +2,9 @@
 #include <SoftwareSerial.h>
 #define ARDUINO_RX 4//should connect to TX of the Serial MP3 Player module
 #define ARDUINO_TX 3//connect to RX of the module
+
 SoftwareSerial myMP3(ARDUINO_RX, ARDUINO_TX);
+
 
 #include <PCM.h>
 #include <Wire.h>
@@ -11,8 +13,12 @@ const unsigned long eventTime = 60000;
 unsigned long prevTime = 0;
 
 int playstart = 0;
+int sfxPlay1 =0;
+int sfxPlay2 =0;
+int sfxPlay3 =0;
 
 volatile byte myData[3];
+volatile byte myDataPrv[3];
 volatile bool flag = false;
 
 const unsigned char sound1[] PROGMEM = {
@@ -29,16 +35,10 @@ const unsigned char sound3[] PROGMEM = {
  };
 
 
-void setup() {
+void setup()
+{
 
-  Serial.begin(9600);
-  // Start the I2C Bus as Slave on address 9
-  Wire.begin(9); 
-  // Attach a function to trigger when something is received.
-  Wire.onReceive(receiveEvent);
   Serial.println("UARTSerialV1");
-  
-  
   myMP3.begin(9600);
   delay(500);//allow everything to settle down
   //first we need to select the TF Card
@@ -49,16 +49,30 @@ void setup() {
   myMP3.write(0x01);  //data..usually 1 byte
   myMP3.write(0xEF);  //end byte
   delay(20);
+  Serial.begin(9600);
+   //Start the I2C Bus as Slave on address 9
+  Wire.begin(9); 
+  //Attach a function to trigger when something is received.
+  Wire.onReceive(receiveEvent);
+  
 }
 
-void loop() {
-
-  unsigned long currentTime = millis();
- 
-  Serial.println(currentTime);
-  if(currentTime - prevTime >= eventTime || playstart !=1 )
+void receiveEvent(int bytes) {
+  Serial.println("reciving data");
+  for (int i = 0; i < bytes; i++)
   {
-    //playstart = true;
+    myData[i] = Wire.read();
+    Serial.println(myData[i]);
+  }
+}
+
+void loop()
+{
+  unsigned long currentTime = millis();
+
+  if(currentTime - prevTime >= eventTime || playstart !=1 )
+  { 
+    playstart = true;
     Serial.println("Play sound 1");
     //Now lets Play the first song 7E 04 41 00 01 EF
     myMP3.write(0x7E);  //start of instruction
@@ -68,32 +82,57 @@ void loop() {
     myMP3.write((byte)0x00);//forces the value to be read as a byte, otherwise error occurs
     myMP3.write(0x02);//will be the first file on the card
     myMP3.write(0xEF); //end byte
+    
     prevTime = currentTime;
- }
+   }
+  if(myData[0] == myDataPrv[0] && myData[1] == myDataPrv[1] && myData[2] == myDataPrv[2])
+  {
+    for( int i = 0 ; i<3 ; i++)//saves current input into prev input 
+    {
+      myDataPrv[i] = myData[i];
+      //Serial.println(myDataPrv[i]);
+      
+    }
+     //Serial.println("no play");
+  }
+  else
+  {
+    if(myData[2]==1)
+    { 
+    //sound 1 condition
+      
+      startPlayback(sound3, sizeof(sound3));
+      Serial.println("force1");
+      //myData[1]= 0;
+      //myData[0]= 0;
+    }
+    
+    else if(myData[1]==1)
+    {                                                                                 //sound 2 condition
+      startPlayback(sound2, sizeof(sound2));
+      Serial.println("force2");
+      //myData[2]= 0;
+      //myData[0]= 0;
+    }
+    
+    else if(myData[0]==1){                                                                                 //sound 3 condition
+    
+      startPlayback(sound1, sizeof(sound1));
+      Serial.println("force3");
+      //myData[2]= 0;
+      //myData[1]= 0;
+    }
+    delay(100);
+    
+    for( int i = 0 ; i<3 ; i++)//saves current input into prev input 
+    {
+      myDataPrv[i] = myData[i];
+      Serial.println(myDataPrv[i]);
+      
+    }
+    Serial.println("played");
+  }
     
   
-  if(myData[2]==1)
-  {                                                                                 //sound 1 condition
-    startPlayback(sound3, sizeof(sound3));
-    Serial.println("force3");
-  }
-  
-  else if(myData[1]==1)
-  {                                                                                 //sound 2 condition
-    startPlayback(sound2, sizeof(sound2));
-    Serial.println("force2");
-  }
-  
-  else if(myData[0]==1){                                                                                 //sound 3 condition
-  
-    startPlayback(sound1, sizeof(sound1));
-    Serial.println("force3");
-  }  
-}
 
-void receiveEvent(int bytes) {
-  for (int i = 0; i < bytes; i++)
-  {
-    myData[i] = Wire.read();
-  }
 }
