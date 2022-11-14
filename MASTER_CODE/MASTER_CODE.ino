@@ -1,4 +1,4 @@
-// Include the required Wire library for I2C<br>
+ // Include the required Wire library for I2C<br>
 #include<Wire.h>
 
 #include <FastLED.h>
@@ -18,7 +18,7 @@ FASTLED_USING_NAMESPACE
 //#define CLK_PIN   4
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
-#define NUM_LEDS    39
+#define NUM_LEDS    40
 CRGB leds[NUM_LEDS];
 int randomColor[20];
 #define BRIGHTNESS         255
